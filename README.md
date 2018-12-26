@@ -218,6 +218,33 @@ The working directory to run the command in, inside the container. The default i
 
 Example: `/app`
 
+### `ssh` (optional, list)
+The ssh options to be forwarded, requirees docker experimental mode and docker v18.09+ BuildKite AWS stack v4.0.2+)
+Default: empty
+Examples:
+```yml
+steps:
+  - commands:
+    plugins:
+      - docker#v2.1.0:
+          image: "docker:latest"
+          always-pull: true
+          ssh:
+            - default
+```
+
+```yml
+steps:
+  - commands:
+    plugins:
+      - docker#v2.1.0:
+          image: "docker:latest"
+          always-pull: true
+          ssh:
+            - projecta=./projecta.pem
+            - projectb=./projectb.pem
+```
+
 ## License
 
 MIT (see [LICENSE](LICENSE))
