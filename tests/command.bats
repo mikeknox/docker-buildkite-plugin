@@ -508,15 +508,16 @@ EOF
 @test "Builds a container" {
   export BUILDKITE_PLUGIN_DOCKER_IMAGE=image:tag
   export BUILDKITE_PLUGIN_DOCKER_MOUNT_BUILDKITE_AGENT=false
-  export BUILDKITE_PLUGIN_DOCKER_BUILD="true"
-  export BUILDKITE_PLUGIN_DOCKER_DEBUG="true"
+  export BUILDKITE_PLUGIN_DOCKER_BUILD=true
 
   stub docker \
-    "build --rm -t image:tag . : echo built image:tag"
+    "build --rm -t image:tag . : echo Successfully tagged image:tag"
+
+  run $PWD/hooks/command
 
   assert_success
   assert_output --partial "Building image:tag"
-  assert_output --partial "built image:tag"
+  assert_output --partial "Successfully tagged image:tag"
 
   unstub docker
   unset BUILDKITE_PLUGIN_DOCKER_IMAGE
