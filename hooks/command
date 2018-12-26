@@ -69,11 +69,18 @@ fi
 
 args=()
 
+# Build container
+if [[ "${BUILDKITE_PLUGIN_DOCKER_BUILD:-false}" =~ ^(true|on|1)$ ]] ; then
+    docker_command="build"
+fi
+
 # Support switching tty off
-if [[ "${BUILDKITE_PLUGIN_DOCKER_TTY:-$tty_default}" =~ ^(true|on|1)$ ]] ; then
-  args+=("-it")
-else
-  args+=("-i")
+if [[ "${BUILDKITE_PLUGIN_DOCKER_BUILD:-false}" =~ ^(false|off|0)$ ]] ; then
+  if [[ "${BUILDKITE_PLUGIN_DOCKER_TTY:-$tty_default}" =~ ^(true|on|1)$ ]] ; then
+    args+=("-it")
+  else
+    args+=("-i")
+  fi
 fi
 
 args+=("--rm")
@@ -88,7 +95,11 @@ if [[ -n "${BUILDKITE_PLUGIN_DOCKER_VOLUMES:-}" && ! "${BUILDKITE_PLUGIN_DOCKER_
   exit 1
 fi
 
-default_volumes=1
+if [[ "${BUILDKITE_PLUGIN_DOCKER_BUILD:-false}" =~ ^(true|on|1)$ ]] ; then
+  default_volumes=''
+else
+  default_volumes=1
+fi
 
 # Handle volumes=true (meaning defaults), otherwise we get an error about it not being an array
 if [[ "${BUILDKITE_PLUGIN_DOCKER_MOUNTS:-}" == "true" || "${BUILDKITE_PLUGIN_DOCKER_VOLUMES:-}" == "true" ]] ; then
@@ -202,7 +213,7 @@ fi
 shell=()
 shell_disabled=1
 
-if [[ -n "${BUILDKITE_COMMAND}" ]]; then
+if [[ -n "${BUILDKITE_COMMAND:-}" ]]; then
   shell_disabled=''
 fi
 
@@ -234,8 +245,12 @@ elif plugin_read_list_into_result BUILDKITE_PLUGIN_DOCKER_SHELL ; then
   done
 fi
 
-# Add the image in before the shell and command
-args+=("${BUILDKITE_PLUGIN_DOCKER_IMAGE}")
+if [[ "${BUILDKITE_PLUGIN_DOCKER_BUILD:-false}" =~ ^(true|on|1)$ ]] ; then
+  args+=("-t" "${BUILDKITE_PLUGIN_DOCKER_IMAGE}" ".")
+else
+  # Add the image in before the shell and command
+  args+=("${BUILDKITE_PLUGIN_DOCKER_IMAGE}")
+fi
 
 # Set a default shell if one is needed
 if [[ -z $shell_disabled ]] && [[ ${#shell[@]} -eq 0 ]] ; then
@@ -277,7 +292,7 @@ if [[ ${#shell[@]} -gt 0 ]] ; then
   done
 fi
 
-if [[ -n "${BUILDKITE_COMMAND}" ]] ; then
+if [[ -n "${BUILDKITE_COMMAND:-}" ]] ; then
   if is_windows ; then
     # The windows CMD shell only supports multiple commands with &&.
     windows_multi_command=${BUILDKITE_COMMAND//$'\n'/ && }
@@ -294,12 +309,16 @@ elif [[ ${#command[@]} -gt 0 ]] ; then
   done
 fi
 
-echo "--- :docker: Running ${display_command[*]} in ${BUILDKITE_PLUGIN_DOCKER_IMAGE}"
+if [[ "${BUILDKITE_PLUGIN_DOCKER_BUILD:-false}" =~ ^(true|on|1)$ ]] ; then
+  echo "--- :docker: Building ${BUILDKITE_PLUGIN_DOCKER_IMAGE}"
+else
+  echo "--- :docker: Running ${display_command[*]} in ${BUILDKITE_PLUGIN_DOCKER_IMAGE}"
+fi
 
 if [[ "${debug_mode:-off}" =~ (on) ]] ; then
-  echo "$ docker run ${args[*]}" >&2
+  echo "$ docker ${docker_command:-run} ${args[*]}" >&2
 fi
 
 # Don't convert paths on gitbash on windows, as that can mangle user paths and cmd options.
 # See https://github.com/buildkite-plugins/docker-buildkite-plugin/issues/81 for more information.
-( if is_windows ; then export MSYS_NO_PATHCONV=1; fi && docker run "${args[@]}" )
+( if is_windows ; then export MSYS_NO_PATHCONV=1; fi && docker ${docker_command:-run} "${args[@]}" )
