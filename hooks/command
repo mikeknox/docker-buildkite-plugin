@@ -151,14 +151,17 @@ if [[ "${BUILDKITE_PLUGIN_DOCKER_MOUNT_BUILDKITE_AGENT:-$mount_agent_default}" =
   fi
 fi
 
-# Mount buildkite-agent if we have a path for it
-if [[ -n "${BUILDKITE_AGENT_BINARY_PATH:-}" ]] ; then
-  args+=(
-    "--env" "BUILDKITE_JOB_ID"
-    "--env" "BUILDKITE_BUILD_ID"
-    "--env" "BUILDKITE_AGENT_ACCESS_TOKEN"
-    "--volume" "$BUILDKITE_AGENT_BINARY_PATH:/usr/bin/buildkite-agent"
-  )
+# if docker run....
+if [[ "${BUILDKITE_PLUGIN_DOCKER_BUILD:-false}" =~ ^(false|off|0)$ ]] ; then
+  # Mount buildkite-agent if we have a path for it
+  if [[ -n "${BUILDKITE_AGENT_BINARY_PATH:-}" ]] ; then
+    args+=(
+      "--env" "BUILDKITE_JOB_ID"
+      "--env" "BUILDKITE_BUILD_ID"
+      "--env" "BUILDKITE_AGENT_ACCESS_TOKEN"
+      "--volume" "$BUILDKITE_AGENT_BINARY_PATH:/usr/bin/buildkite-agent"
+    )s
+  fi
 fi
 
 # Parse extra env vars and add them to the docker args
