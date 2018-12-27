@@ -72,6 +72,8 @@ args=()
 # Build container
 if [[ "${BUILDKITE_PLUGIN_DOCKER_BUILD:-false}" =~ ^(true|on|1)$ ]] ; then
     docker_command="build"
+    # tty mode can send erronous EOF'ss
+    args+=("--progress" "plain")
 fi
 
 # Support switching tty off
